@@ -4,12 +4,11 @@ import os
 from imageio import imread
 
 
-# Folder where the info of the mammograms is stored.
-
-home_data = "/home/sposso22/work/shared_data/breast_cancer/official_split/nonuniform_sampling_2025/final_datasets"  # or "/home/sposso22/work/shared_data/breast_cancer/resized_images_test"
+# Folder where the info of the mammograms is at
+home_data = "/home/sabari/work/shared_data/breast_cancer/official_split/nonuniform_sampling_2025/final_datasets"
 
 # Path to the folder where patches will be saved.
-patches_folder = os.path.join("/home/sposso22/work/shared_data/breast_cancer", "patches")
+patches_folder = os.path.join("/home/sabari/work/shared_data/breast_cancer", "patches")
 
 # Create the patches folder if it does not exist.
 os.makedirs(patches_folder, exist_ok=True)
