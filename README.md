@@ -1,159 +1,79 @@
-# Breast Cancer Detection Using Deep Learning (PyTorch)
+# Deep Learning Model for Breast Cancer Classification Using PyTorch
 
-A PyTorch implementation of a deep learning framework for breast cancer classification using convolutional neural networks, based on the research paper:
+In this repository, I implemented a deep learning classifier introduced in the research paper [**Deep Learning to Improve Breast Cancer Detection on Screening Mammography**](https://www.nature.com/articles/s41598-019-48995-4) using PyTorch.
 
-**[Deep Learning to Improve Breast Cancer Detection on Screening Mammography](https://www.nature.com/articles/s41598-019-48995-4)**
+The original code and model are available [here](https://github.com/lishen/end2end-all-conv). However, the original implementation was developed using Keras.
 
-This repository implements a two-stage breast cancer classification pipeline using the **CBIS-DDSM mammography dataset**. The approach combines patch-level classification with whole-image classification using ResNet50.
+My main goal is to provide a comprehensible PyTorch implementation of this model that can be helpful for everyone, especially those beginning to work with deep learning and interested in medical applications.
 
-The original implementation was developed using Keras by [Lishen et al.'s implementation](https://github.com/lishen/end2end-all-conv). This repository provides a PyTorch-based implementation intended to make the methodology easier to understand and reproduce.
-
-> **Attribution:** This implementation is based on the work and methodology of the original paper and repository. Please refer to the original sources when using or adapting this project.
+The mammography dataset employed in this study is **CBIS-DDSM (Curated Breast Imaging Subset of DDSM)**. [Here](https://github.com/CBIIT/CBIS-DDSM) you can find information about the dataset.
 
 ---
 
-## Table of Contents
+# Summary of the Main Contribution of This Paper
 
-- [Project Overview](#project-overview)
-- [Dataset](#dataset)
-- [Project Architecture](#project-architecture)
-- [Mammogram Preprocessing](#mammogram-preprocessing)
-- [Stage 1: Patch-Level Classification](#stage-1-patch-level-classification)
-- [Stage 2: Whole-Image Classification](#stage-2-whole-image-classification)
-- [Repository Structure](#repository-structure)
-- [Installation](#installation)
-- [Execution](#execution)
-- [Trained Models](#trained-models)
-- [Technologies Used](#technologies-used)
-- [References](#references)
+The authors propose a breast cancer classifier based on a methodology composed of two stages.
+
+The first stage consists of a **patch-level classifier** that uses pixel-level annotations from mammograms to discriminate regions of interest (ROIs) and train the model using those areas.
+
+The second stage consists of a **whole-image classifier**. This image classifier uses the trained patch classifier as its backbone, replacing the top layers while incorporating two additional ResNet blocks.
+
+The training of this whole-image classifier requires only image-level labels.
+
+The patch-level and whole-image classifiers are described in more detail below.
 
 ---
 
-## Project Overview
+# Mammogram Preprocessing
 
-The project follows a two-stage deep learning architecture:
+First, we resize the mammograms to **1152 × 896 pixels** while preserving their original aspect ratio to avoid image distortion.
 
-**Stage 1 – Patch-Level Classifier**
+To achieve this, each image is scaled based on the new height (1152 pixels), and the corresponding width is calculated using the original aspect ratio.
 
-A ResNet50-based classifier is trained using image patches extracted from mammograms. Pixel-level annotations are used to identify regions of interest (ROIs) and distinguish them from background regions.
+If the resulting width is smaller than the target width (896 pixels), symmetric padding is applied on both sides to reach the desired dimensions.
 
-**Stage 2 – Whole-Image Classifier**
+Next, breast segmentation is performed to remove the original watermark in the mammograms.
 
-The trained patch classifier is converted into a whole-image classifier by replacing its fully connected layer with Global Average Pooling and adding two ResNet bottleneck blocks.
+Finally, the processed images are saved as **16-bit PNG files**.
 
-The final model performs binary classification:
+There is no reorienting of the mammograms.
 
-- Benign
-- Malignant
-
-### Overall Workflow
-
-```text
-CBIS-DDSM Mammography Dataset
-             |
-             v
-     Image Preprocessing
-             |
-             v
-       ROI Extraction
-             |
-             v
-      Patch Generation
-             |
-          +--+--+
-          |     |
-          v     v
-       Dataset S  Dataset s10
-          |         |
-          +----+----+
-               |
-               v
-       ResNet50 Patch Classifier
-               |
-               v
-       Transfer Learned Features
-               |
-               v
-      Global Average Pooling
-               |
-               v
-       Two ResNet Bottleneck Blocks
-               |
-               v
-       Fully Connected Layer
-               |
-               v
-      Whole-Image Classification
-               |
-               v
-        Benign / Malignant
-```
+We use the original split provided by the dataset authors and further split the training set to generate a validation set using an **80/20 split**. The partitions are stratified to maintain the same proportion of cancer cases across all sets.
 
 ---
 
-## Dataset
+# First Stage: Patch-Level Classifier
 
-This project uses the **CBIS-DDSM (Curated Breast Imaging Subset of DDSM)** dataset, which contains mammographic images and associated annotations.
+## Patch Dataset Generation from Mammograms
 
-Dataset setup tutorial:
+We generate two datasets from the mammograms for patch-based classification:
 
-[CBIS-DDSM Dataset Repository](https://github.com/sposso/CBIS-DDSM-DATASET)
+### 📁 Dataset S
 
-The original dataset split is retained. The training set is further divided into training and validation subsets using an 80/20 split.
+Contains **2 patches per image**:
 
-The partitions are stratified to maintain the proportion of cancer cases across the datasets.
+- 1 patch extracted from the **center of the Region of Interest (ROI)**.
+- 1 **background patch** randomly sampled from the same image, outside the ROI.
 
----
+### 📁 Dataset s10
 
-## Mammogram Preprocessing
+Contains **20 patches per image**:
 
-The mammograms undergo the following preprocessing steps:
+- 10 patches randomly sampled from each ROI with at least **90% overlap**.
+- 10 patches randomly sampled from non-ROI regions.
 
-1. **Image resizing:** Images are resized to 1152 × 896 pixels while preserving their original aspect ratio.
-2. **Aspect ratio preservation:** Images are scaled and symmetrically padded when necessary.
-3. **Breast segmentation:** Segmentation is performed to remove the original watermark.
-4. **Image storage:** Processed mammograms are saved as 16-bit PNG files.
-5. **Dataset splitting:** The original dataset split is retained, with an additional 80/20 training-validation split.
+### Patch Details
 
-The preprocessing implementation is available in the relevant image resizing scripts in the `Patches` directory.
+- **Size:** 224 × 224 pixels
+- **Format:** 16-bit PNG
+- **Pixel values:** Rescaled to the range [0.0, 255.0], followed by subtraction of the average grayscale value of the whole patch training set.
+- **Watermarks:** Removed before patch extraction.
 
----
+### 🏷️ Class Labels
 
-## Stage 1: Patch-Level Classification
+Each patch is assigned to one of the following five classes:
 
-### 1. Patch Dataset Generation
-
-Two patch datasets are generated from the mammograms: **S** and **s10**.
-
-#### Dataset S
-
-Contains two patches per image:
-
-- One patch extracted from the center of the Region of Interest (ROI).
-- One randomly sampled background patch from outside the ROI.
-
-#### Dataset s10
-
-Contains twenty patches per image:
-
-- Ten patches randomly sampled from each ROI with at least 90% overlap.
-- Ten randomly sampled patches from non-ROI regions.
-
-### Patch Specifications
-
-| Parameter | Description |
-|---|---|
-| Patch size | 224 × 224 pixels |
-| Image format | 16-bit PNG |
-| Pixel range | 0–255 |
-| Normalization | Subtraction of the average grayscale value of the patch training set |
-| Watermark removal | Performed before patch extraction |
-
-### Patch Classification Labels
-
-Each patch belongs to one of five classes:
-
-| Label | Class |
+| Label | Description |
 |---|---|
 | 0 | Background |
 | 1 | Malignant Calcification |
@@ -161,135 +81,220 @@ Each patch belongs to one of five classes:
 | 3 | Malignant Mass |
 | 4 | Benign Mass |
 
-### Generate Patch Datasets
-
-Navigate to the `Patches` directory and run:
+To generate both **S** and **s10** patch datasets, navigate to the `Patches` folder and execute the following script:
 
 ```bash
 cd Patches
 python generating_patches.py
 ```
 
-This script generates both S and s10 patch datasets.
+---
 
-### 2. ResNet50 Patch Classifier
+# Patch Classification with ResNet50
 
-ResNet50 is used as the backbone for patch classification.
+The chosen model for patch classification is **ResNet50**, trained using a **3-stage fine-tuning strategy** on both the S and s10 datasets.
 
-The model uses ImageNet-pretrained weights and a three-stage fine-tuning strategy.
+During training, layers are gradually unfrozen from top to bottom while reducing the learning rate at each stage.
 
-#### Three-Stage Training Strategy
+## 🔁 3-Stage Training Procedure
 
-| Stage | Trainable Layers | Learning Rate | Weight Decay | Epochs |
-|---|---|---:|---:|---:|
-| Stage 1 | Fully connected layer | 1e-3 | 1e-4 | 3 |
-| Stage 2 | Last convolutional block and FC layer | 1e-4 | 1e-4 | 10 |
-| Stage 3 | Entire ResNet50 | 1e-5 | Previously set | 37 |
+### 🔹 Stage 1: Fine-Tune Fully Connected Layer
 
-For the S dataset, the third training stage is extended to 200 epochs because of its smaller size.
+- **Learning rate:** `1e-3`
+- **Weight decay:** `1e-4`
+- **Layers trained:** Only the final fully connected (FC) layer
+- **Epochs:** 3
 
-#### Data Augmentation
+### 🔸 Stage 2: Fine-Tune Top Layers
 
-The following transformations are applied during training:
+- **Learning rate:** `1e-4`
+- **Weight decay:** `1e-4`
+- **Layers trained:** Last convolutional layers (PyTorch: `layer4[2]`) and FC layer
+- **Epochs:** 10
 
-- Horizontal and vertical flips
-- Random rotations between -25° and +25°
-- Random zoom between 0.8 and 1.2
-- Intensity shifts of ±20 pixel values
+### 🔻 Stage 3: Fine-Tune Entire Network
 
-#### Training Configuration
+- **Learning rate:** `1e-5`
+- **Weight decay:** As previously set
+- **Layers trained:** All layers in ResNet50
+- **Epochs:** 37
 
-| Parameter | Value |
-|---|---|
-| Backbone | ResNet50 |
-| Pretrained weights | ImageNet |
-| Optimizer | Adam |
-| Batch size | 256 |
-| Standard training duration | 50 epochs |
-| Fine-tuning stages | 3 |
+During training, we augment mammograms to promote model generalizability by applying the following augmentations:
 
-### Train the Patch Classifier
+- **Horizontal and vertical flips**
+- **Random rotations:** Between `-25°` and `+25°`
+- **Zoom:** Within a scale of `[0.8, 1.2]`
+- **Intensity shift:** ±20 of the pixel values
 
-The training implementation is located in:
+We train the ResNet50 model for a total of **50 epochs**. However, due to the smaller size of the S dataset compared to s10, we extend the third training stage to **200 epochs for S** to ensure sufficient learning.
+
+We use a batch size of **256** and optimize the model using the **Adam optimizer**. All model parameters are initialized with ImageNet-pretrained weights.
+
+### Train Patch Classifier
+
+The training implementation is available in the `patch_classifier` folder:
 
 ```text
 patch_classifier/train_function.py
 ```
 
-Trained patch classifier models are stored in the `trained_models` directory.
+### Trained Patch-Level Classifier Models
+
+The trained patch-level classifier models are stored in the `trained_models` folder.
+
+### Patch-Level Classification Results
+
+| Dataset | Validation Accuracy | Test Accuracy |
+|---|---:|---:|
+| S | 0.800 (80.0%) | 0.812 (81.2%) |
+| s10 | 0.970 (97.0%) | 0.967 (96.7%) |
+
+**Key Results:**
+
+- Dataset S achieved **81.2% test accuracy**.
+- Dataset s10 achieved **96.7% test accuracy**.
+- Dataset s10 obtained the highest patch-level classification accuracy.
 
 ---
 
-## Stage 2: Whole-Image Classification
+# Second Stage: Whole-Image Classifier
 
-The second stage converts the trained patch classifier into a whole-image classifier.
+Based on the configurations evaluated in the [research paper](https://www.nature.com/articles/s41598-019-48995-4), the whole-image classifier uses a ResNet50 classifier followed by two identical ResNet blocks of `[512-512-1024]`.
 
-The backbone is based on ResNet50 trained on the s10 patch dataset.
+Each ResNet block consists of repeated units of three convolutional layers with filter sizes:
 
-### Model Architecture
+- `1 × 1`
+- `3 × 3`
+- `1 × 1`
 
-The architecture consists of:
+The values in the brackets indicate the depths of the three convolutional layers in each block.
 
-1. ResNet50 backbone
-2. Global Average Pooling (GAP)
-3. First ResNet bottleneck block
-4. Second ResNet bottleneck block
-5. Fully connected classification layer
+Before assembling the ResNet blocks, the fully connected layer of the patch classifier is replaced with **Global Average Pooling (GAP)**, which outputs the average activation of each feature map.
 
-The original fully connected layer of ResNet50 is replaced by Global Average Pooling.
+There are 2048 feature maps in the last convolutional layer of ResNet50.
 
-The GAP layer produces a 2048-dimensional feature vector, which is passed through two additional ResNet bottleneck blocks.
-
-Each bottleneck block uses three convolutional layers:
-
-- 1 × 1 convolution
-- 3 × 3 convolution
-- 1 × 1 convolution
-
-The block configuration is:
-
-```text
-[512 - 512 - 1024]
-```
-
-The final fully connected layer performs binary classification:
+The output of the GAP layer is then passed through the two additional ResNet blocks and finally connected to a fully connected layer that performs binary classification:
 
 - Benign
 - Malignant
 
-### Two-Stage Training Strategy
+### Whole-Image Classifier Architecture
 
-| Stage | Training Configuration | Learning Rate | Weight Decay | Epochs |
-|---|---|---:|---:|---:|
-| Stage 1 | Train newly added layers | 1e-4 | 1e-3 | 30 |
-| Stage 2 | Fine-tune the entire network | 1e-5 | Previously set | 20 |
+The image classifier model is defined in the `whole_image_classifier` folder.
 
-### Training Configuration
+```text
+whole_image_classifier/whole_classifier_model.py
+```
 
-| Parameter | Value |
-|---|---|
-| Backbone | ResNet50 trained on s10 |
-| Optimizer | Adam |
-| Batch size | 12 |
-| Training strategy | Two-stage fine-tuning |
-| Augmentation | Same transformations as patch classification |
+## 2-Stage Training Strategy
 
-The batch size is reduced to 12 due to GPU memory limitations.
+Similarly to the training method used for the patch classifier, we employ a two-stage training strategy for the whole-image classifier.
 
-### Train the Whole-Image Classifier
+### 🔹 Stage 1: Train Newly Added Layers
 
-The implementation is located at:
+- **Learning rate:** `1e-4`
+- **Weight decay:** `1e-3`
+- **Layers trained:** Only the newly added layers
+- **Epochs:** 30
+
+### 🔸 Stage 2: Fine-Tune Entire Network
+
+- **Learning rate:** `1e-5`
+- **Layers trained:** All layers in the network
+- **Epochs:** 20
+
+The script to train the whole-image classifier is available at:
 
 ```text
 whole_image_classifier/main.py
 ```
 
-The whole-image classifier architecture is defined in the same directory.
+Due to GPU memory limitations, we decreased the batch size to **12**.
 
-The trained whole-image classifier is stored in `trained_models`.
+We optimized the model using the **Adam optimizer** and used the same augmentations applied during patch classification.
+
+**Note:** The backbone used in the whole-image classifier corresponds to the ResNet50 trained on the s10 patch dataset.
+
+### Trained Whole-Image Classifier Model
+
+The trained whole-image classifier model is stored in the `trained_models` folder.
+
+### Whole-Image Classification Results
+
+| Model | Test Accuracy | Test AUC |
+|---|---:|---:|
+| ResNet50 + 2 ResNet Blocks | **0.857 (85.7%)** | **0.856** |
+
+**Key Results:**
+
+- **Test Accuracy:** 85.7%
+- **Test AUC:** 0.856
+
+The whole-image classifier performs binary classification of complete mammograms into benign and malignant categories.
 
 ---
-## Installation
+
+# Overall Classification Results
+
+The following table summarizes the reported performance of both classification stages.
+
+| Classification Stage | Dataset / Model | Validation Accuracy | Test Accuracy | Test AUC |
+|---|---|---:|---:|---:|
+| Patch-Level | Dataset S | 80.0% | 81.2% | — |
+| Patch-Level | Dataset s10 | 97.0% | 96.7% | — |
+| Whole-Image | ResNet50 + 2 ResNet Blocks | — | 85.7% | 0.856 |
+
+**Summary:**
+
+- The s10 patch dataset achieved the highest patch-level test accuracy of **96.7%**.
+- The whole-image classifier achieved **85.7% test accuracy** and a **0.856 AUC**.
+
+The patch-level and whole-image results represent different classification tasks and should be interpreted separately.
+
+---
+
+# Repository Structure
+
+```text
+Breast-Cancer-Detection-Using-Deep-Learning/
+│
+├── Heatmaps/
+│
+├── Patches/
+│   ├── generating_patches.py
+│   └── patches_utils.py
+│
+├── data/
+│   ├── __init__.py
+│   ├── split.py
+│   └── test.csv
+│
+├── patch_classifier/
+│   └── train_function.py
+│
+├── trained_models/
+│   ├── best_s_patch_model.pt
+│   ├── best_s10_patch_model.pt
+│   └── best_whole_image_classifier.pt
+│
+├── utils/
+│
+├── whole_image_classifier/
+│   ├── main.py
+│   ├── tools.py
+│   └── whole_classifier_model.py
+│
+├── evaluate_patch_model.py
+├── main.py
+├── README.md
+└── .gitignore
+```
+
+**Note:** The trained model checkpoint files are large and may be maintained separately from the GitHub source repository.
+
+---
+
+# Installation
 
 ### 1. Clone the Repository
 
@@ -297,7 +302,7 @@ The trained whole-image classifier is stored in `trained_models`.
 git clone https://github.com/sabaripriyan2004/Breast-Cancer-Detection-Using-Deep-Learning-.git
 ```
 
-### 2. Navigate to the Project
+### 2. Navigate to the Project Directory
 
 ```bash
 cd Breast-Cancer-Detection-Using-Deep-Learning-
@@ -309,88 +314,80 @@ cd Breast-Cancer-Detection-Using-Deep-Learning-
 python -m venv venv
 ```
 
-Activate it on Windows:
+Activate the virtual environment on Windows:
 
 ```bash
 venv\Scripts\activate
 ```
 
-### 4. Install Dependencies
-
-Install PyTorch:
+### 4. Install PyTorch
 
 ```bash
 pip install torch torchvision torchaudio
 ```
 
-Install common supporting libraries:
+### 5. Install Supporting Libraries
 
 ```bash
 pip install numpy pandas matplotlib seaborn scikit-learn pillow scipy opencv-python tqdm
 ```
 
-Install additional project-specific dependencies as required by the source code.
-
 ---
 
-## Execution
+# Execution
 
-The main project components can be explored through the following scripts:
+The main project components can be executed using the following scripts:
 
 | Task | Script |
 |---|---|
-| Patch generation | `Patches/generating_patches.py` |
-| Patch classifier training | `patch_classifier/train_function.py` |
-| Whole-image classifier training | `whole_image_classifier/main.py` |
-| Patch model evaluation | `evaluate_patch_model.py` |
-| Heatmap generation | `Heatmaps/` |
+| Patch Dataset Generation | `Patches/generating_patches.py` |
+| Patch Classifier Training | `patch_classifier/train_function.py` |
+| Whole-Image Classifier Training | `whole_image_classifier/main.py` |
+| Patch Model Evaluation | `evaluate_patch_model.py` |
 
-**Important:** Training and inference require the appropriate CBIS-DDSM dataset files and trained model checkpoints. Update dataset paths and configuration settings according to your local environment before execution.
+### Execution Workflow
 
----
+1. Download and configure the CBIS-DDSM dataset.
+2. Perform mammogram preprocessing.
+3. Generate the S and s10 patch datasets.
+4. Train the ResNet50 patch classifier.
+5. Evaluate the patch-level classification models.
+6. Train the whole-image classifier using the s10-trained ResNet50 backbone.
+7. Evaluate the whole-image classifier using test accuracy and AUC.
 
-## Trained Models
-
-The project uses trained model checkpoints for:
-
-- S patch classifier
-- s10 patch classifier
-- Whole-image classifier
-
-The model checkpoints are large binary files and may not be included in the GitHub repository because of file-size restrictions.
-
-Keep the trained weights locally or distribute them separately using an appropriate large-file hosting solution such as Git LFS.
+**Note:** Update the dataset paths and configuration settings according to your local environment before executing the scripts.
 
 ---
 
-## Technologies Used
+# Technologies Used
 
 | Category | Technologies |
 |---|---|
 | Programming Language | Python |
 | Deep Learning Framework | PyTorch |
 | Model Architecture | ResNet50 |
-| Computer Vision | CNN, Image Preprocessing, Heatmap Generation |
+| Computer Vision | CNN, Transfer Learning |
 | Image Processing | OpenCV, Pillow |
 | Data Processing | NumPy, Pandas |
-| Visualization | Matplotlib, Seaborn |
-| Evaluation | Scikit-learn |
+| Data Visualization | Matplotlib, Seaborn |
+| Model Evaluation | Scikit-learn |
 | Dataset | CBIS-DDSM |
 
 ---
 
-## References
+# References
 
 1. **Research Paper:** [Deep Learning to Improve Breast Cancer Detection on Screening Mammography](https://www.nature.com/articles/s41598-019-48995-4)
 2. **Original Keras Implementation:** [lishen/end2end-all-conv](https://github.com/lishen/end2end-all-conv)
-3. **PyTorch Documentation:** [https://pytorch.org/docs/](https://pytorch.org/docs/)
+3. **CBIS-DDSM Dataset:** [CBIS-DDSM on GitHub](https://github.com/CBIIT/CBIS-DDSM)
+4. **PyTorch Documentation:** [https://pytorch.org/docs/](https://pytorch.org/docs/)
 
 ---
 
-## Disclaimer
+# Disclaimer
 
 This repository is intended for educational and research purposes only. It is not a clinically validated diagnostic system and should not be used as a substitute for professional medical assessment.
 
-## License and Attribution
+# License and Attribution
 
-Please refer to the original project's license and research paper when using, adapting, or redistributing this implementation. Retain appropriate attribution to the original authors and contributors.
+This implementation is based on the methodology described in the referenced research paper and related original implementation. Please retain appropriate attribution and comply with the original project's license and dataset terms when using, adapting, or redistributing this work.
