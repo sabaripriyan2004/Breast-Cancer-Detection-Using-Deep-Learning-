@@ -14,7 +14,7 @@ dataset = 'test'  # or 'testing'
 df = pd.read_csv(f'final_datasets/{dataset}_dataset.csv')
 
 # Create a folder to save resized images if it doesn't exist
-base_folder = '/home/sposso22/work/shared_data/breast_cancer'
+base_folder = 'home/sabari/work/shared_data/breast_cancer'
 output_folder = os.path.join(base_folder, f'resized_images_{dataset}')
 
 area_mask_pre_resize = np.zeros(df.shape[0])
