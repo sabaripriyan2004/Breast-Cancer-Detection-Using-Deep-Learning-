@@ -24,7 +24,7 @@ for setting in ["training", "testing"]:
 
         # training_mammograms = pd.read_csv(os.path.join(home_data, "/home/sania/shared_data/breast_cancer/official_split/patches/training/s_train.csv"))
         training_mammograms = pd.read_csv(os.path.join(home_data, "training_resized_images.csv"))
-        # Path to training_mammograms : ('/home/sania/shared_data/breast_cancer/nonuniform_sampling_2025/official_split/training_dataset.csv')
+        # Path to training_mammograms : ('/home/sabari/shared_data/breast_cancer/nonuniform_sampling_2025/official_split/training_dataset.csv')
         
 
         # Create the training patches folder.
