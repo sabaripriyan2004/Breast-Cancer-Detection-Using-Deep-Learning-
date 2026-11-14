@@ -385,8 +385,7 @@ Keep the trained weights locally or distribute them separately using an appropri
 
 1. **Research Paper:** [Deep Learning to Improve Breast Cancer Detection on Screening Mammography](https://www.nature.com/articles/s41598-019-48995-4)
 2. **Original Keras Implementation:** [lishen/end2end-all-conv](https://github.com/lishen/end2end-all-conv)
-3. **CBIS-DDSM Dataset Setup:** [sposso/CBIS-DDSM-DATASET](https://github.com/sposso/CBIS-DDSM-DATASET)
-4. **PyTorch Documentation:** [https://pytorch.org/docs/](https://pytorch.org/docs/)
+3. **PyTorch Documentation:** [https://pytorch.org/docs/](https://pytorch.org/docs/)
 
 ---
 
