@@ -3,3 +3,9 @@ __pycache__/
 *.pyc
 data/
 *.dcm
+*.pt
+*.dll
+*.lib
+__pycache__/
+.venv/
+venv/
