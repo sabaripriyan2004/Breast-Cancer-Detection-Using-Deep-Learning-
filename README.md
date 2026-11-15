@@ -244,6 +244,8 @@ The following table summarizes the reported performance of both classification s
 | Patch-Level | Dataset s10 | 97.0% | 96.7% | — |
 | Whole-Image | ResNet50 + 2 ResNet Blocks | — | 85.7% | 0.856 |
 
+
+
 **Summary:**
 
 - The s10 patch dataset achieved the highest patch-level test accuracy of **96.7%**.
@@ -251,129 +253,8 @@ The following table summarizes the reported performance of both classification s
 
 The patch-level and whole-image results represent different classification tasks and should be interpreted separately.
 
----
 
-# Repository Structure
-
-```text
-Breast-Cancer-Detection-Using-Deep-Learning/
-│
-├── Heatmaps/
-│
-├── Patches/
-│   ├── generating_patches.py
-│   └── patches_utils.py
-│
-├── data/
-│   ├── __init__.py
-│   ├── split.py
-│   └── test.csv
-│
-├── patch_classifier/
-│   └── train_function.py
-│
-├── trained_models/
-│   ├── best_s_patch_model.pt
-│   ├── best_s10_patch_model.pt
-│   └── best_whole_image_classifier.pt
-│
-├── utils/
-│
-├── whole_image_classifier/
-│   ├── main.py
-│   ├── tools.py
-│   └── whole_classifier_model.py
-│
-├── evaluate_patch_model.py
-├── main.py
-├── README.md
-└── .gitignore
-```
-
-**Note:** The trained model checkpoint files are large and may be maintained separately from the GitHub source repository.
-
----
-
-# Installation
-
-### 1. Clone the Repository
-
-```bash
-git clone https://github.com/sabaripriyan2004/Breast-Cancer-Detection-Using-Deep-Learning-.git
-```
-
-### 2. Navigate to the Project Directory
-
-```bash
-cd Breast-Cancer-Detection-Using-Deep-Learning-
-```
-
-### 3. Create a Virtual Environment
-
-```bash
-python -m venv venv
-```
-
-Activate the virtual environment on Windows:
-
-```bash
-venv\Scripts\activate
-```
-
-### 4. Install PyTorch
-
-```bash
-pip install torch torchvision torchaudio
-```
-
-### 5. Install Supporting Libraries
-
-```bash
-pip install numpy pandas matplotlib seaborn scikit-learn pillow scipy opencv-python tqdm
-```
-
----
-
-# Execution
-
-The main project components can be executed using the following scripts:
-
-| Task | Script |
-|---|---|
-| Patch Dataset Generation | `Patches/generating_patches.py` |
-| Patch Classifier Training | `patch_classifier/train_function.py` |
-| Whole-Image Classifier Training | `whole_image_classifier/main.py` |
-| Patch Model Evaluation | `evaluate_patch_model.py` |
-
-### Execution Workflow
-
-1. Download and configure the CBIS-DDSM dataset.
-2. Perform mammogram preprocessing.
-3. Generate the S and s10 patch datasets.
-4. Train the ResNet50 patch classifier.
-5. Evaluate the patch-level classification models.
-6. Train the whole-image classifier using the s10-trained ResNet50 backbone.
-7. Evaluate the whole-image classifier using test accuracy and AUC.
-
-**Note:** Update the dataset paths and configuration settings according to your local environment before executing the scripts.
-
----
-
-# Technologies Used
-
-| Category | Technologies |
-|---|---|
-| Programming Language | Python |
-| Deep Learning Framework | PyTorch |
-| Model Architecture | ResNet50 |
-| Computer Vision | CNN, Transfer Learning |
-| Image Processing | OpenCV, Pillow |
-| Data Processing | NumPy, Pandas |
-| Data Visualization | Matplotlib, Seaborn |
-| Model Evaluation | Scikit-learn |
-| Dataset | CBIS-DDSM |
-
----
+# Technologi
 
 # References
 
@@ -384,10 +265,3 @@ The main project components can be executed using the following scripts:
 
 ---
 
-# Disclaimer
-
-This repository is intended for educational and research purposes only. It is not a clinically validated diagnostic system and should not be used as a substitute for professional medical assessment.
-
-# License and Attribution
-
-This implementation is based on the methodology described in the referenced research paper and related original implementation. Please retain appropriate attribution and comply with the original project's license and dataset terms when using, adapting, or redistributing this work.
